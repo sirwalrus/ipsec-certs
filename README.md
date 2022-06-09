@@ -21,7 +21,7 @@ Dependencies
 
 Example Playbook
 ----------------
-
+```
 - hosts: all
   collections:
     - fedora.linux_system_roles
@@ -45,7 +45,7 @@ Example Playbook
 
     - import_role:
         name: sirwalrus.ipsec-certs
-
+```
 License
 -------
 
