@@ -1,0 +1,34 @@
+---
+
+- name: Creating local policy directory
+  file:
+    dest: /etc/selinux/local_policy
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy SELinux policy module
+  copy:
+    src: selinux/ipsec-certs.pp
+    dest: /etc/selinux/local_policy/ipsec-certs.pp
+    owner: root
+    group: root
+    mode: '0644'
+  register: ipsec_selinux_status
+
+- name: SELinux - check loaded modules
+  command: semodule -l
+  register: ipsec_selinuxmodules
+  changed_when: False
+  when: ipsec_selinux_status.changed
+
+- name: Removing outdated policy
+  command: semodule -r ipsec-certs
+  when:
+    - ipsec_selinux_status.changed
+    - ipsec_selinuxmodules.stdout.find('ipsec-certs') != -1
+
+- name: install SELinux module for ipsec-certs
+  command: "semodule -i /etc/selinux/local_policy/ipsec-certs.pp"
+  when: ipsec_selinux_status.changed

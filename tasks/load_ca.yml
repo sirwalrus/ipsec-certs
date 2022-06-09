@@ -1,0 +1,70 @@
+---
+# tasks file for ipsec-certs
+#
+#
+
+- name: create tmp dir -  "{{ ipsec_tmp_dir }}"
+  ansible.builtin.file:
+    path: "{{ ipsec_tmp_dir }}"
+    state: directory
+    mode: '0700'
+  changed_when: false
+
+- name: create dir - "{{ ipsec_tmp_dir }}/by-hash"
+  ansible.builtin.file:
+    path: "{{ ipsec_tmp_dir }}/by-hash"
+    state: directory
+    mode: '0700'
+  changed_when: false
+
+- name: split up CA bundle
+  ansible.builtin.shell:
+    chdir: "{{ ipsec_tmp_dir }}"
+    cmd: "{{ ipsec_split_ca_cmd }}"
+  changed_when: false
+
+- name: List on disk bundle
+  find:
+    paths: "{{ ipsec_tmp_dir }}"
+    patterns: '*.pem'
+  register: ipsec_ca_list
+  changed_when: false
+
+- name: organize certs by hash
+  ansible.builtin.shell: "cp {{ item.path }} {{ ipsec_tmp_dir }}/by-hash/$(openssl x509 -in {{ item.path }} -noout -hash)"
+  with_items: "{{ ipsec_ca_list.files }}"
+  changed_when: false
+
+- name: List hashes
+  find:
+    paths: "{{ ipsec_tmp_dir }}/by-hash"
+  register: ipsec_ca_hash_list
+  changed_when: false
+
+- name: List installed CA certs
+  ansible.builtin.shell: "certutil -L -d {{ ipsec_nss_dir }} | grep 'CT,,' | sed 's/\\s*CT,,\\s*//g'"
+  register: ipsec_nss_ca_list
+  changed_when: false
+
+- name: get installed CA certs
+  ansible.builtin.shell: "certutil -L -d {{ ipsec_nss_dir }} -n '{{ item }}' -a | openssl x509 -noout -hash"
+  register: ipsec_nss_ca_hashes
+  when: ipsec_nss_ca_list.stdout_lines[0] != ''
+  with_items: "{{ ipsec_nss_ca_list.stdout_lines }}"
+  changed_when: false
+
+- set_fact:
+    ipsec_nss_hashes: "{{ ipsec_nss_ca_hashes.results | map(attribute='stdout_lines') | list | flatten }}"
+    ipsec_file_hashes: "{{ ipsec_ca_hash_list.files | map(attribute='path') | map('regex_search','([a-z0-9]+)$') | select('string') | list }}"
+
+- name: Load CA certs not present
+  ansible.builtin.shell: "certutil -A -n \"$(openssl x509 -in {{ ipsec_tmp_dir }}/by-hash/{{ item }} -noout -hash)\" -t TC -d {{ ipsec_nss_dir }} -a -i {{ ipsec_tmp_dir }}/by-hash/{{ item }}"
+  when: item not in ipsec_nss_hashes
+  loop: "{{ ipsec_file_hashes }}"
+  register: ipsec_load_ca_results
+
+- name: cleanup tmp dir -  "{{ ipsec_tmp_dir }}"
+  ansible.builtin.file:
+    path: "{{ ipsec_tmp_dir }}"
+    state: absent
+  changed_when: false

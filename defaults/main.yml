@@ -1,0 +1,11 @@
+---
+# defaults file for ipsec-certs
+
+ipsec_nss_dir: "sql:/etc/ipsec.d"
+ipsec_ca_bundle: /etc/ipa/ca.crt
+ipsec_tmp_dir: "/tmp/.ipsec-{{ ansible_date_time.epoch }}"
+ipsec_certmonger_keysize: 4096
+ipsec_certmonger_reload_cmd: "systemctl restart ipsec"
+ipsec_certmonger_princ: "IPSEC/{{ inventory_hostname }}"
+
+ipsec_split_ca_cmd: "awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > \"cert.\" c \".pem\"}' < {{ ipsec_ca_bundle }}"

@@ -1,0 +1,15 @@
+---
+# tasks file for ipsec-certs
+#
+#
+
+- name: Load SELinux policy
+  include_tasks: selinux.yml
+
+- name: Managing CA Certificates
+  include_tasks: load_ca.yml
+
+- name: Setup Certmonger
+  include_tasks: invoke_certmonger.yml
+
+

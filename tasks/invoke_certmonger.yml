@@ -1,0 +1,26 @@
+---
+
+- name: Get a host ticket
+  command: kinit -kt /etc/krb5.keytab
+  changed_when: false
+
+- name: Checking if IPA service exists
+  command: "ipa service-show {{ ipsec_certmonger_princ }}"
+  register: ipsec_service_princ
+  failed_when: ipsec_service_princ.rc == 1
+  changed_when: false
+
+- name: Creating IPA service
+  command: "ipa service-add --ok-as-delegate=true {{ ipsec_certmonger_princ }}"
+  when: ipsec_service_princ.rc == 2
+
+- name: Check for existing certmonger enrollment
+  ansible.builtin.shell: "ipa-getcert list -d {{ ipsec_nss_dir }} -n {{ inventory_hostname }}"
+  changed_when: false
+  register: ipsec_certmonger_list
+  failed_when: ipsec_certmonger_list.rc > 1
+
+- name: Setup Certmonger
+  ansible.builtin.shell: "ipa-getcert request -d {{ ipsec_nss_dir }} -n {{ inventory_hostname }} -g {{ ipsec_certmonger_keysize }} -N 'CN={{ inventory_hostname }}' -D {{ inventory_hostname }} -K '{{ ipsec_certmonger_princ }}' -r  -w -v -C '{{ ipsec_certmonger_reload_cmd }}'"
+  when: ipsec_certmonger_list.rc == 1
+  register: ipsec_certmonger_results
