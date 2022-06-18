@@ -38,13 +38,13 @@ Example Playbook
           - policy: clear
             cidr: default
           - policy: private
-            cidr: 172.16.25.0/24
+            cidr: 172.16.25.2/32
   tasks:
     - import_role:
-        name: vpn
+        name: sirwalrus.ipsec-certs
 
     - import_role:
-        name: sirwalrus.ipsec-certs
+        name: vpn
 ```
 License
 -------

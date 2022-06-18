@@ -9,3 +9,6 @@ ipsec_certmonger_reload_cmd: "systemctl restart ipsec"
 ipsec_certmonger_princ: "IPSEC/{{ inventory_hostname }}"
 
 ipsec_split_ca_cmd: "awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > \"cert.\" c \".pem\"}' < {{ ipsec_ca_bundle }}"
+
+ipsec_packages:
+  - libreswan

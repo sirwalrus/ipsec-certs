@@ -1,7 +1,12 @@
 ---
 # tasks file for ipsec-certs
 #
-#
+
+- name: Install ipsec packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ ipsec_packages }}"
 
 - name: Load SELinux policy
   include_tasks: selinux.yml
